@@ -1,15 +1,24 @@
 const express = require('express');
-
+const connectDB = require('./config/database');
+const User = require('./models/user');
 const app = express();
 
-app.listen(3000, () => {
-    console.log('Server running on port 3000...');
+app.use(express.json());
+
+connectDB().then(() => {
+    console.log('Database connection successfull');
+    app.listen(3000, () => {
+        console.log('Server running on port 3000...');
+    })
 })
 
-app.use('/dashboard', (req,res) => {
-    res.send('This is the dashboard page response');
-})
+app.post('/signup', async(req, res) => {
+    try {
+        const user = new User(req.body);
 
-app.use('/', (req, res) => {
-    res.send('This is the main home page');
+        await user.save();
+        res.send('User created successfully')
+    }catch(err) {
+        res.status(500).send('Error creating user');
+    }
 })
