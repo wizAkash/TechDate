@@ -2,14 +2,20 @@ const express = require('express');
 const connectDB = require('./config/database');
 const User = require('./models/user');
 const app = express();
+const {validatorForSignup} = require('./utils/validator');
+const bcrypt = require('bcrypt');
 
 app.use(express.json());
 
 connectDB().then(() => {
-    console.log('Database connection successfull');
+    return User.init();
+}).then(() => {
+    console.log('Database connection and indexes ready');
     app.listen(3000, () => {
         console.log('Server running on port 3000...');
     })
+}).catch((err) => {
+    console.error('Database startup failed:', err.message);
 })
 
 //Get user by email id
@@ -62,18 +68,36 @@ app.get('/feed', async(req,res) => {
 //Create a new user
 app.post('/signup', async(req, res) => {
     try {
-        const user = new User(req.body);
+        //Validate the request body
+        validatorForSignup(req);
+
+        const {firstName, lastName, emailId, password, gender } = req.body;
+        //Encrypt the password
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const user = new User({
+            ...req.body,
+            password: passwordHash
+        });
 
         await user.save();
         res.send('User created successfully')
     }catch(err) {
-        res.status(500).send('Error creating user');
+        res.status(500).send('Error creating user ' + err.message);
     }
 })
 
 //Update an user by id
-app.patch('/user', async(req, res) => {
+app.patch('/user/:userId', async(req, res) => {
     try{
+        const ALLOWED_UPDATES = ['password', 'age', 'about', 'skills', 'photo'];
+        const updates = Object.keys(req.body);
+        const isValidOperation = updates.every((update) => ALLOWED_UPDATES.includes(update));
+        if(!isValidOperation) {
+            return res.status(400).send('Update not allowed');
+        }
+
+
         //Update using email id
         // const userEmail = req.body.emailId;
         // const {emailId, ...updateData} = req.body;
@@ -84,12 +108,12 @@ app.patch('/user', async(req, res) => {
 
 
 
-        const userId = req.body.userId;
+        const userId = req.params.userId;
         const updateData = req.body;
-        const user = await User.findByIdAndUpdate(userId, updateData);
+        const user = await User.findByIdAndUpdate(userId, updateData, {runValidators: true});
         console.log(user);
         res.send('User updated successfully');
     }catch(err) {
-        res.status(500).send('Error updating user');
+        res.status(500).send('Error updating user: '+ err.message);
     }
 });
