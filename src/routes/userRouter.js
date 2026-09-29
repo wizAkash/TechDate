@@ -4,7 +4,7 @@ const ConnectionRequest = require('../models/connectionRequest');
 const User = require('../models/user');
 const userRouter = express.Router();
 
-const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills";
+const USER_SAFE_DATA = "firstName lastName photo age gender about skills";
 
 //Check all intrests received in my profile
 userRouter.get('/request/received', userAuth, async(req, res) => {
@@ -16,11 +16,10 @@ userRouter.get('/request/received', userAuth, async(req, res) => {
             status: 'intrested'
         }).populate('fromUserId', USER_SAFE_DATA);
 
-        const data = allRequests.map((ele) => ele.fromUserId);
 
         res.json({
             message: "Data fetched Successfully",
-            data
+            data: allRequests
         });
     }
     catch(err) {
@@ -82,7 +81,7 @@ userRouter.get('/feed', userAuth, async(req, res) => {
                     toUserId: loggedInUser._id
                 }
             ]
-        }).select("fromUserId toUserId").populate("fromUserId", "firstName lastName about skills").populate("toUserId", "firstName lastName about skills");
+        }).select("fromUserId toUserId").populate("fromUserId", "firstName lastName about skills photo").populate("toUserId", "firstName lastName about skills photo");
 
         const hiddenUsers = new Set();
         allRequests.forEach((row) => {
@@ -106,6 +105,8 @@ userRouter.get('/feed', userAuth, async(req, res) => {
                 }
             ]
         }).select(USER_SAFE_DATA).skip(skip).limit(limit);
+
+        console.log(feedData);
 
         res.json({data: feedData});
     }

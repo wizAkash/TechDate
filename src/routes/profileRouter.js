@@ -11,7 +11,7 @@ profileRouter.get('/', userAuth, async(req, res) => {
     try{
         const user = req.user;
 
-        res.send('User fetched successfully: ' + user);
+        res.send(user);
     } catch(err) {
         res.status(500).send('Error fetching profile: ' + err.message);
     }

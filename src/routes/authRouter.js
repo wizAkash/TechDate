@@ -9,7 +9,7 @@ authRouter.post('/signup', async(req, res) => {
         //Validate the request body
         validatorForSignup(req);
 
-        const {firstName, lastName, emailId, password, gender } = req.body;
+        const {firstName, lastName, emailId, password } = req.body;
         //Encrypt the password
         const passwordHash = await bcrypt.hash(password, 10);
 
@@ -18,8 +18,10 @@ authRouter.post('/signup', async(req, res) => {
             password: passwordHash
         });
 
-        await user.save();
-        res.send('User created successfully')
+        const newUser = await user.save();
+        const token = newUser.getToken();
+        res.cookie('token', token);
+        res.json({message: 'User created successfully', data: newUser});
     }catch(err) {
         res.status(500).send('Error creating user ' + err.message);
     }
@@ -46,7 +48,7 @@ authRouter.post('/login', async(req, res) => {
         console.log('Token : ' +token);
         res.cookie('token', token);
         
-        res.send('User logged in scuccessfully');
+        res.send(user);
     }catch(err) {
         res.status(400).send('Error logging in user : ' + err.message);
     }
